@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All The Possibilities — TWS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080a0f;
+    --surface: #0e1118;
+    --border: rgba(255,255,255,0.07);
+    --accent: #c8a97e;
+    --accent2: #7eb8c8;
+    --text: #e8e4dc;
+    --muted: rgba(232,228,220,0.45);
+    --glow: rgba(200,169,126,0.15);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow: hidden;
+  }
+
+  /* Starfield */
+  #stars-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #app {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 680px;
+    width: 100%;
+    animation: fadeUp 0.7s ease both;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── INTRO ─────────────────────────────── */
+  .logo-line {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(0.75rem, 2vw, 0.9rem);
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    opacity: 0.8;
+  }
+
+  h1.title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(3rem, 10vw, 6.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.4rem;
+  }
+  h1.title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 3vw, 1.35rem);
+    color: var(--muted);
+    margin-bottom: 3rem;
+    letter-spacing: 0.05em;
+  }
+
+  .divider {
+    width: 48px;
+    height: 1px;
+    background: var(--accent);
+    margin: 0 auto 2.5rem;
+    opacity: 0.5;
+  }
+
+  .intro-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 480px;
+    margin-bottom: 3rem;
+  }
+
+  /* ── BUTTONS ────────────────────────────── */
+  .btn-primary {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.8rem;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--glow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+  }
+  .btn-primary:hover::before { transform: scaleX(1); }
+  .btn-primary:hover { letter-spacing: 0.3em; }
+
+  /* ── QUESTION SCREEN ────────────────────── */
+  .q-number {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.8rem;
+    opacity: 0.7;
+  }
+
+  .q-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.5rem, 5vw, 2.4rem);
+    line-height: 1.3;
+    margin-bottom: 0.8rem;
+    max-width: 560px;
+  }
+
+  .q-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: clamp(0.9rem, 2vw, 1.05rem);
+    margin-bottom: 2.8rem;
+    max-width: 480px;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .choice-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    padding: 1.1rem 1.6rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .choice-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--glow), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .choice-btn:hover { border-color: var(--accent); }
+  .choice-btn:hover::after { opacity: 1; }
+
+  .choice-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--accent);
+    font-size: 1.05rem;
+    min-width: 1.2rem;
+    line-height: 1.2;
+  }
+
+  .choice-text { line-height: 1.5; }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 2.4rem;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .progress-bar {
+    height: 1px;
+    background: var(--border);
+    width: 100%;
+  }
+  .progress-fill {
+    height: 1px;
+    background: var(--accent);
+    transition: width 0.6s ease;
+  }
+
+  /* ── ENDING SCREEN ──────────────────────── */
+  .ending-badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 1.5rem;
+    opacity: 0.8;
+  }
+  .ending-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.2rem, 8vw, 4.5rem);
+    line-height: 1;
+    margin-bottom: 1.2rem;
+  }
+  .ending-title em { font-style: italic; color: var(--accent); }
+  .ending-poem {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    line-height: 1.9;
+    color: var(--muted);
+    max-width: 460px;
+    margin-bottom: 3rem;
+  }
+  .ending-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    display: inline-block;
+  }
+  .btn-restart {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.75rem 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .btn-restart:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Mobile */
+  @media (max-width: 520px) {
+    #app { padding: 1.2rem; }
+    .choice-btn { padding: 1rem 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<div id="app">
+
+  <!-- INTRO -->
+  <div class="screen active" id="screen-intro">
+    <p class="logo-line">A closed story by TWS</p>
+    <h1 class="title">All The<br><em>Possibilities</em></h1>
+    <p class="subtitle">an interactive journey</p>
+    <div class="divider"></div>
+    <p class="intro-text">
+      A mysterious door appears before you — no explanation, no warning. Only a soft glow and the faint sound of something familiar calling your name. What you find on the other side depends entirely on you.
+    </p>
+    <button class="btn-primary" onclick="startStory()">Open the Door</button>
+  </div>
+
+  <!-- QUESTION -->
+  <div class="screen" id="screen-question">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Your Journey</span>
+        <span id="progress-text">1 / 5</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <p class="q-number" id="q-number">Chapter I</p>
+    <h2 class="q-text" id="q-text"></h2>
+    <p class="q-sub" id="q-sub"></p>
+    <div class="choices" id="choices-container"></div>
+  </div>
+
+  <!-- ENDING -->
+  <div class="screen" id="screen-ending">
+    <p class="ending-badge">Your Ending</p>
+    <h2 class="ending-title" id="ending-title"></h2>
+    <p class="ending-poem" id="ending-poem"></p>
+    <span class="ending-tag" id="ending-tag"></span>
+    <br><br>
+    <button class="btn-restart" onclick="restartStory()">↩ Begin Again</button>
+  </div>
+
+</div>
+
+<script>
+// ── STARFIELD ─────────────────────────────────────────────────────
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  stars = Array.from({length: 140}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.2 + 0.2,
+    o: Math.random() * 0.5 + 0.1,
+    speed: Math.random() * 0.3 + 0.05
+  }));
+}
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    s.o += Math.sin(Date.now() * s.speed * 0.001) * 0.003;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,169,126,${Math.max(0.05, Math.min(0.6, s.o))})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+drawStars();
+
+// ── STORY DATA ────────────────────────────────────────────────────
+const chapters = ['Chapter I', 'Chapter II', 'Chapter III', 'Chapter IV', 'Chapter V'];
+
+const story = {
+  id: 'start',
+  number: 1,
+  chapter: 'Chapter I',
+  question: 'You open the door. Three paths appear before you.',
+  sub: 'The air hums with something you can't name. Which way do you go?',
+  choices: [
+    {
+      label: 'A',
+      text: 'Follow the path bathed in golden light and distant music',
+      next: {
+        id: 'A',
+        number: 2,
+        chapter: 'Chapter II',
+        question: 'A figure emerges from the light, smiling like they've been waiting.',
+        sub: 'There's warmth in their eyes. What do you do?',
+        choices: [
+          {
+            label: 'A',
+            text: 'Ask them who they are',
+            next: {
+              id: 'AA',
+              number: 3,
+              chapter: 'Chapter III',
+              question: 'They laugh softly. "I'm whoever you need me to be tonight."',
+              sub: 'They extend their hand toward a glowing stage in the distance.',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Take their hand and walk toward the stage',
+                  next: {
+                    id: 'AAA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'The stage lights up. A melody begins — one you feel in your chest.',
+                    sub: 'They look at you. Do you stay or join them?',
+                    choices: [
+                      { label: 'A', text: 'Step into the light and perform alongside them', next: { id: 'AAAA', ending: 'center_stage' } },
+                      { label: 'B', text: 'Watch from the wings, quietly witnessing the moment', next: { id: 'AAAB', ending: 'witness' } },
+                      { label: 'C', text: 'Close your eyes and just listen', next: { id: 'AAAC', ending: 'resonance' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Stay where you are — you want to know more first',
+                  next: {
+                    id: 'AAB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'They sit beside you on the floor. The air feels still.',
+                    sub: 'No rush. No stage. Just two people in a glowing corridor.',
+                    choices: [
+                      { label: 'A', text: 'Ask them about the world you've just entered', next: { id: 'AABA', ending: 'quiet_knowing' } },
+                      { label: 'B', text: 'Say nothing — just exist together in the quiet', next: { id: 'AABB', ending: 'still_water' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            label: 'B',
+            text: 'Say nothing — you just smile back',
+            next: {
+              id: 'AB',
+              number: 3,
+              chapter: 'Chapter III',
+              question: 'Without words, they lead you down a corridor lined with polaroids.',
+              sub: 'Every photo shows a moment — laughing, dancing, resting. All unfamiliar, yet somehow yours.',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Stop and study one photo that catches your eye',
+                  next: {
+                    id: 'ABA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'In the photo: a rooftop at golden hour. Someone is looking at the camera like they knew you'd find this.',
+                    sub: 'Your guide gestures upward. There's a staircase.',
+                    choices: [
+                      { label: 'A', text: 'Climb to the rooftop to see if it matches', next: { id: 'ABAA', ending: 'golden_hour' } },
+                      { label: 'B', text: 'Pocket the photo and keep walking', next: { id: 'ABAB', ending: 'keeper_of_moments' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Keep walking — the journey is more interesting than the photos',
+                  next: {
+                    id: 'ABB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'The corridor opens into a vast room. In the center: a piano, unlit, waiting.',
+                    sub: 'Your guide disappears. It's just you and the instrument.',
+                    choices: [
+                      { label: 'A', text: 'Sit down and press a single key', next: { id: 'ABBA', ending: 'first_note' } },
+                      { label: 'B', text: 'Circle the piano slowly, taking it in', next: { id: 'ABBB', ending: 'reverence' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      label: 'B',
+      text: 'Take the quiet path under a sky full of stars',
+      next: {
+        id: 'B',
+        number: 2,
+        chapter: 'Chapter II',
+        question: 'The silence here is different. It breathes.',
+        sub: 'You find a letter resting on a stone bench. It has no name — just a seal.',
+        choices: [
+          {
+            label: 'A',
+            text: 'Open it immediately',
+            next: {
+              id: 'BA',
+              number: 3,
+              chapter: 'Chapter III',
+              question: 'Inside: a single line. "Go to the rooftop before midnight."',
+              sub: 'You look up. A winding staircase spirals into the dark sky.',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Climb the stairs — you have nothing to lose',
+                  next: {
+                    id: 'BAA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'At the top: a figure, back turned, watching the horizon.',
+                    sub: 'The city below hums softly. Stars above. Do you speak?',
+                    choices: [
+                      { label: 'A', text: 'Say their name — you somehow already know it', next: { id: 'BAAA', ending: 'the_reunion' } },
+                      { label: 'B', text: 'Stand beside them without a word', next: { id: 'BAAB', ending: 'rooftop_forever' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Wait at the bottom — if it's meant to be, they'll come down',
+                  next: {
+                    id: 'BAB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'Someone does come down — but not who you expected.',
+                    sub: 'A stranger with soft eyes. "You waited," they say. "Most don't."',
+                    choices: [
+                      { label: 'A', text: 'Smile and say, "I had a feeling."', next: { id: 'BABA', ending: 'serendipity' } },
+                      { label: 'B', text: 'Ask who they were expecting', next: { id: 'BABB', ending: 'wrong_door_right_place' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            label: 'B',
+            text: 'Hold it — carry it unopened a little longer',
+            next: {
+              id: 'BB',
+              number: 3,
+              chapter: 'Chapter III',
+              question: 'You walk with the letter close. The path ends at a small garden.',
+              sub: 'Fireflies drift between lanterns. A melody plays from somewhere.',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Open the letter here, in the soft light',
+                  next: {
+                    id: 'BBA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'The letter says: "Whatever you choose next — it was always the right one."',
+                    sub: 'A path splits in two ahead.',
+                    choices: [
+                      { label: 'A', text: 'Choose the left path', next: { id: 'BBAA', ending: 'the_dreamer' } },
+                      { label: 'B', text: 'Choose the right path', next: { id: 'BBAB', ending: 'the_dreamer' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Sit among the fireflies and never open the letter',
+                  next: {
+                    id: 'BBB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'Hours pass — or maybe minutes. Time feels different here.',
+                    sub: 'Eventually someone finds you. "Still here?" they ask, laughing a little.',
+                    choices: [
+                      { label: 'A', text: 'Nod and hand them the letter', next: { id: 'BBBA', ending: 'the_one_who_stayed' } },
+                      { label: 'B', text: 'Laugh too and say, "I think I found what I came for."', next: { id: 'BBBB', ending: 'found_without_seeking' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      label: 'C',
+      text: 'Step into the lively path filled with voices and laughter',
+      next: {
+        id: 'C',
+        number: 2,
+        chapter: 'Chapter II',
+        question: 'The crowd parts. Someone reaches through and takes your hand.',
+        sub: '"You made it!" they say, like they've been waiting.',
+        choices: [
+          {
+            label: 'A',
+            text: '"Where are we going?" you ask',
+            next: {
+              id: 'CA',
+              number: 3,
+              chapter: 'Chapter III',
+              question: '"Everywhere," they say, already pulling you forward.',
+              sub: 'The energy is electric. You pass through a hundred little moments.',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Try to keep up — this is what you came for',
+                  next: {
+                    id: 'CAA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'At last you arrive at a rooftop party. The whole city is below you.',
+                    sub: 'Your guide raises a cup. "To all the possibilities."',
+                    choices: [
+                      { label: 'A', text: 'Raise yours and mean it', next: { id: 'CAAA', ending: 'all_the_possibilities' } },
+                      { label: 'B', text: 'Slip away to the edge to watch the city breathe', next: { id: 'CAAB', ending: 'city_at_night' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Pause — you want to remember each moment as it happens',
+                  next: {
+                    id: 'CAB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'Your guide turns around, surprised to see you still. "You stopped."',
+                    sub: '"Someone has to," you say. They smile like that's the best thing they've heard.',
+                    choices: [
+                      { label: 'A', text: 'Stay together, but slower now', next: { id: 'CABA', ending: 'slow_magic' } },
+                      { label: 'B', text: 'Let them go ahead — find your own pace', next: { id: 'CABB', ending: 'your_own_orbit' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            label: 'B',
+            text: '"I think I\'m lost," you admit honestly',
+            next: {
+              id: 'CB',
+              number: 3,
+              chapter: 'Chapter III',
+              question: 'They stop. Look at you carefully.',
+              sub: '"That\'s okay," they say. "So are we. Come on."',
+              choices: [
+                {
+                  label: 'A',
+                  text: 'Follow them — lost together sounds better',
+                  next: {
+                    id: 'CBA',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'You wander without a destination. Somehow it leads somewhere beautiful.',
+                    sub: 'A hidden courtyard. Lanterns. Music so faint it could be imagined.',
+                    choices: [
+                      { label: 'A', text: 'Dance, even if you don\'t know how', next: { id: 'CBAA', ending: 'lost_and_found' } },
+                      { label: 'B', text: 'Just breathe it in', next: { id: 'CBAB', ending: 'the_quiet_miracle' } }
+                    ]
+                  }
+                },
+                {
+                  label: 'B',
+                  text: 'Let go of their hand — you\'ll find your own way',
+                  next: {
+                    id: 'CBB',
+                    number: 4,
+                    chapter: 'Chapter IV',
+                    question: 'Alone now, you discover a door you\'d have missed otherwise.',
+                    sub: 'On the other side: a version of everywhere you\'ve ever wanted to be.',
+                    choices: [
+                      { label: 'A', text: 'Walk through', next: { id: 'CBBA', ending: 'the_solo_journey' } },
+                      { label: 'B', text: 'Stand in the doorway — neither here nor there', next: { id: 'CBBB', ending: 'the_threshold' } }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+};
+
+const endings = {
+  center_stage: {
+    title: 'Center Stage',
+    poem: 'You stepped into the light\nwhen everything inside you said wait.\nThey saw you — really saw you —\nand the music became yours.',
+    tag: '✦ The one who shines'
+  },
+  witness: {
+    title: 'The Witness',
+    poem: 'Not every magic needs your hands in it.\nSome moments you carry\nby simply being there\nwhen they happen.',
+    tag: '✦ The one who remembers'
+  },
+  resonance: {
+    title: 'Resonance',
+    poem: 'You closed your eyes\nand let the sound become a place.\nSomewhere between the notes\nyou found something you\'d lost.',
+    tag: '✦ The one who listens'
+  },
+  quiet_knowing: {
+    title: 'Quiet Knowing',
+    poem: 'You asked all the questions\nno one else thought to ask.\nAnd in the answering,\nyou both understood more.',
+    tag: '✦ The one who seeks'
+  },
+  still_water: {
+    title: 'Still Water',
+    poem: 'No words were needed.\nYou sat in the same silence\nand it meant everything\nthat could never be said.',
+    tag: '✦ The one who stays'
+  },
+  golden_hour: {
+    title: 'Golden Hour',
+    poem: 'You climbed toward the light\nbecause a photo told you to.\nAt the top, it was warmer\nthan any photograph could hold.',
+    tag: '✦ The one who chases light'
+  },
+  keeper_of_moments: {
+    title: 'Keeper of Moments',
+    poem: 'You took the photo with you\nas if it were proof\nthat somewhere, in a world like this,\nyou had already been beloved.',
+    tag: '✦ The one who collects'
+  },
+  first_note: {
+    title: 'First Note',
+    poem: 'One key. One sound.\nThe whole room held its breath.\nYou didn\'t know you were composing\nuntil it was already a song.',
+    tag: '✦ The one who begins'
+  },
+  reverence: {
+    title: 'Reverence',
+    poem: 'You walked around it slowly,\nnot ready to touch.\nSome things deserve to be honored\nbefore they\'re played.',
+    tag: '✦ The one who respects'
+  },
+  the_reunion: {
+    title: 'The Reunion',
+    poem: 'You knew their name\nbefore they told you.\nThat\'s not strange —\nthat\'s the way it works, sometimes.',
+    tag: '✦ The one who remembers first'
+  },
+  rooftop_forever: {
+    title: 'Rooftop Forever',
+    poem: 'Side by side, no words.\nThe city didn\'t need your story.\nIt just needed you\nto be there at the same time.',
+    tag: '✦ The one who shares silence'
+  },
+  serendipity: {
+    title: 'Serendipity',
+    poem: 'You waited for someone else\nand found exactly who you needed.\nThat\'s not a mistake.\nThat\'s how serendipity works.',
+    tag: '✦ The one who finds'
+  },
+  wrong_door_right_place: {
+    title: 'Wrong Door, Right Place',
+    poem: 'Nothing went as planned.\nAnd yet here you are —\nstunned and grateful\nin the most unexpected room.',
+    tag: '✦ The one who wanders'
+  },
+  the_dreamer: {
+    title: 'The Dreamer',
+    poem: 'Left or right, it didn\'t matter.\nThe letter already knew.\nYou were always going\nexactly where you needed to go.',
+    tag: '✦ The one who was chosen'
+  },
+  the_one_who_stayed: {
+    title: 'The One Who Stayed',
+    poem: 'You didn\'t need to open it.\nYou didn\'t need to go anywhere.\nSometimes the whole journey\nis learning to be still.',
+    tag: '✦ The one who remains'
+  },
+  found_without_seeking: {
+    title: 'Found Without Seeking',
+    poem: 'You weren\'t looking for anything\nand you found everything.\nThat\'s the oldest story\nand it keeps being true.',
+    tag: '✦ The one who arrives'
+  },
+  all_the_possibilities: {
+    title: 'All The Possibilities',
+    poem: 'You raised the cup\nand meant every word of it.\nAll of this — every path, every door —\nit was always yours.',
+    tag: '✦ The one who embraces all'
+  },
+  city_at_night: {
+    title: 'City at Night',
+    poem: 'The party continued behind you.\nYou watched the lights below\nand felt more connected\nthan you ever had inside.',
+    tag: '✦ The one who observes'
+  },
+  slow_magic: {
+    title: 'Slow Magic',
+    poem: 'You slowed everything down\nand the world became richer for it.\nThey stayed too.\nSome things are better unhurried.',
+    tag: '✦ The one who savors'
+  },
+  your_own_orbit: {
+    title: 'Your Own Orbit',
+    poem: 'You let them go ahead.\nYou found your own speed.\nAnd you arrived at the same place\nin exactly the right time.',
+    tag: '✦ The one who moves alone'
+  },
+  lost_and_found: {
+    title: 'Lost and Found',
+    poem: 'You danced without knowing how.\nTurns out that\'s the only way.\nThe music didn\'t care about steps —\nit only cared that you moved.',
+    tag: '✦ The one who lets go'
+  },
+  the_quiet_miracle: {
+    title: 'The Quiet Miracle',
+    poem: 'You breathed it in\nand let it be what it was.\nNot everything needs to be held.\nSome magic just asks to be felt.',
+    tag: '✦ The one who receives'
+  },
+  the_solo_journey: {
+    title: 'The Solo Journey',
+    poem: 'You walked through alone\ninto everywhere you\'d ever imagined.\nIt was not lonely.\nIt was entirely yours.',
+    tag: '✦ The one who claims'
+  },
+  the_threshold: {
+    title: 'The Threshold',
+    poem: 'You stood between two worlds\nand didn\'t choose.\nMaybe that\'s its own kind of wisdom —\nknowing some doors are meant for standing in.',
+    tag: '✦ The one who holds the in-between'
+  }
+};
+
+// ── GAME STATE ────────────────────────────────────────────────────
+let currentNode = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.animation = 'none';
+  });
+  const target = document.getElementById(id);
+  target.style.animation = '';
+  void target.offsetWidth;
+  target.classList.add('active');
+}
+
+function startStory() {
+  currentNode = story;
+  showScreen('screen-question');
+  renderQuestion(currentNode);
+}
+
+function renderQuestion(node) {
+  document.getElementById('q-number').textContent = node.chapter;
+  document.getElementById('q-text').textContent = node.question;
+  document.getElementById('q-sub').textContent = node.sub;
+
+  const prog = ((node.number - 1) / 5) * 100;
+  document.getElementById('progress-fill').style.width = prog + '%';
+  document.getElementById('progress-text').textContent = node.number + ' / 5';
+
+  const container = document.getElementById('choices-container');
+  container.innerHTML = '';
+  node.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${choice.label}</span><span class="choice-text">${choice.text}</span>`;
+    btn.addEventListener('click', () => handleChoice(choice));
+    container.appendChild(btn);
+  });
+
+  // Re-trigger animation
+  const screen = document.getElementById('screen-question');
+  screen.style.animation = 'none';
+  void screen.offsetWidth;
+  screen.style.animation = 'fadeUp 0.7s ease both';
+}
+
+function handleChoice(choice) {
+  const next = choice.next;
+  if (next.ending) {
+    showEnding(next.ending);
+  } else {
+    renderQuestion(next);
+  }
+}
+
+function showEnding(key) {
+  const e = endings[key];
+  document.getElementById('ending-title').innerHTML = e.title.replace(/(\w+)$/, '<em>$1</em>');
+  document.getElementById('ending-poem').innerHTML = e.poem.split('\n').join('<br>');
+  document.getElementById('ending-tag').textContent = e.tag;
+  showScreen('screen-ending');
+}
+
+function restartStory() {
+  showScreen('screen-intro');
+}
+</script>
+</body>
+</html>
